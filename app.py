@@ -92,17 +92,17 @@ with col_1_2:
 col_2_1, col_2_2, col_2_3, col_2_4 = st.columns([1, 1, 1, 1], gap="medium")
 
 with col_2_1:
-    min_val = st.session_state["min_altitude_deg"]
-    max_val = st.session_state["max_altitude_deg"]
-    min_alt, max_alt = st.slider(
+    (
+        st.session_state["min_altitude_deg"],
+        st.session_state["max_altitude_deg"],
+    ) = st.slider(
         "Altitude range (degrees)",
         min_value=0,
         max_value=90,
-        value=(min_val, max_val),
+        value=(min_altitude_deg_default, max_altitude_deg_default),
         step=1,
     )
-    st.session_state["min_altitude_deg"] = min_alt
-    st.session_state["max_altitude_deg"] = max_alt
+
 with col_2_2:
     st.session_state["moon_sep_deg"] = st.slider(
         "Moon separation (degrees)",
@@ -145,6 +145,9 @@ with col_3_2:
 with col_3_3:
     st.session_state["make_calendar"] = st.checkbox("Create Calendar", value=False)
 
+# Prepare the configuration file for the planner
+# This will be passed to the main planner function
+
 config_file = {
     "location_name": st.session_state["location_name"],
     "calendar_year": st.session_state["calendar_year"],
@@ -185,6 +188,9 @@ if st.button(
             )
 
     df = pd.DataFrame(results)
+
+    # round observable_hours to 2 decimal places
+    df["observable_hours"] = df["observable_hours"].round(2)
 
     # st.write(df)
 

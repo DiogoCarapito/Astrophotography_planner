@@ -17,3 +17,5 @@ black==23.9.1
 # webapp dependencies
 streamlit==1.47.0
 watchdog==6.0.0
+
+plotly==6.2.0
