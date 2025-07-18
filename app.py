@@ -2,7 +2,12 @@ import streamlit as st
 import datetime
 import pandas as pd
 import os
+
 from astrophotography_planner import main
+
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import matplotlib.cm as cm
 
 
 @st.cache_resource
@@ -180,5 +185,51 @@ if st.button(
                 mime="text/calendar",
                 help="Download the ICS file with your targets.",
             )
-    st.divider()
-    st.write(results)
+
+    df = pd.DataFrame(results)
+
+    # st.write(df)
+
+    # Prepare data
+    df["date"] = pd.to_datetime(df["date"])
+    df["observable_hours"] = df["observable_hours"].astype(float)
+    targets = df["target"].unique()
+    target_map = {target: i for i, target in enumerate(targets)}
+
+    fig, ax = plt.subplots(figsize=(15, max(5, len(targets) * 0.3)))
+
+    # Normalize observable_hours for colormap
+    norm = mcolors.Normalize(
+        vmin=df["observable_hours"].min(), vmax=df["observable_hours"].max()
+    )
+    cmap = cm.get_cmap("viridis")
+
+    for target in targets:
+        target_df = df[df["target"] == target]
+        bars = []
+        colors = []
+        for _, row in target_df.iterrows():
+            # Each bar starts at midnight of the date, width is timedelta of observable hours
+            bars.append((row["date"], pd.Timedelta(hours=row["observable_hours"])))
+            colors.append(cmap(norm(row["observable_hours"])))
+        # Plot broken bars for this target
+        ax.broken_barh(bars, (target_map[target] - 0.4, 0.8), facecolors=colors)
+
+    ax.set_yticks(list(target_map.values()))
+    ax.set_yticklabels(list(target_map.keys()))
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Target")
+    ax.set_title("Astrophotography Observable Hours Gantt Chart")
+
+    # Format x-axis for full year
+    year_start = datetime.datetime(df["date"].dt.year.min(), 1, 1)
+    year_end = datetime.datetime(df["date"].dt.year.max(), 12, 31)
+    ax.set_xlim(year_start, year_end)
+
+    # Colorbar
+    sm = cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    plt.colorbar(sm, ax=ax, label="Observable Hours")
+
+    plt.tight_layout()
+    st.pyplot(fig, use_container_width=True)
